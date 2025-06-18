@@ -1,6 +1,7 @@
 package com.example.jetpackcomposemovieapplication
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -22,26 +23,41 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DrawerState
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -49,6 +65,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.jetpackcomposemovieapplication.ui.theme.JetpackComposeMovieApplicationTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -60,26 +78,92 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             JetpackComposeMovieApplicationTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                val context = LocalContext.current
+                val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+                val scope = rememberCoroutineScope()
 
-                    val moviesList by viewModel.moviesList.collectAsState()
-                    val isLoading by viewModel.loading.collectAsState()
-
-                    Box(modifier = Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)) {
-
-                        MoviesList(moviesList, viewModel::markFavMovie)
-
-                        CircularProgressIndicator(
-                            modifier = if (isLoading) {
-                                Modifier.size(48.dp).align(Alignment.Center)
-                            } else {
-                                Modifier
-                                    .height(0.dp)
-                                    .width(0.dp)
-                            }
-                        )
+                ModalNavigationDrawer(drawerContent = {
+                    ModalDrawerSheet {
+                        Column(
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .verticalScroll(rememberScrollState())
+                        ) {
+                            NavigationDrawerItem(
+                                label = { Text("Home") },
+                                selected = false,
+                                icon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Home,
+                                        contentDescription = "Home",
+                                        tint = Color.Black
+                                    )
+                                },
+                                onClick = {
+                                    Toast.makeText(context, "Home Menu Clicked", Toast.LENGTH_SHORT).show()
+                                    scope.launch {
+                                        drawerState.close()
+                                    }
+                                })
+                            NavigationDrawerItem(
+                                label = { Text("Favorite Movies") },
+                                selected = false,
+                                icon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Favorite,
+                                        contentDescription = "Favorite Movies",
+                                        tint = Color.Black
+                                    )
+                                },
+                                onClick = {
+                                    Toast.makeText(context, "Favorite Movies Menu Clicked", Toast.LENGTH_SHORT).show()
+                                    scope.launch {
+                                        drawerState.close()
+                                    }
+                                })
+                            NavigationDrawerItem(
+                                label = { Text("Settings") },
+                                selected = false,
+                                icon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Settings,
+                                        contentDescription = "Settings",
+                                        tint = Color.Black
+                                    )
+                                },
+                                onClick = {
+                                    Toast.makeText(context, "Settings Menu Clicked", Toast.LENGTH_SHORT).show()
+                                    scope.launch {
+                                        drawerState.close()
+                                    }
+                                })
+                            NavigationDrawerItem(
+                                label = { Text("Help") },
+                                selected = false,
+                                icon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Info,
+                                        contentDescription = "Help",
+                                        tint = Color.Black
+                                    )
+                                },
+                                onClick = {
+                                    Toast.makeText(context, "Help Menu Clicked", Toast.LENGTH_SHORT).show()
+                                    scope.launch {
+                                        drawerState.close()
+                                    }
+                                })
+                        }
+                    }
+                }, drawerState = drawerState) {
+                    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(innerPadding)
+                        ) {
+                            HomeScreenUI(viewModel, drawerState, scope)
+                        }
                     }
                 }
             }
@@ -88,25 +172,104 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
+fun HomeScreenUI(
+    viewModel: MoviesListViewModel,
+    drawerState: DrawerState,
+    scope: CoroutineScope
+) {
+    val moviesList by viewModel.moviesList.collectAsState()
+    val isLoading by viewModel.loading.collectAsState()
+
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
+
+        Column(modifier = Modifier.fillMaxSize()) {
+            FeaturedMovieHeader(drawerState, scope)
+            Spacer(modifier = Modifier.height(16.dp))
+            MoviesList(moviesList, viewModel::markFavMovie)
+        }
+
+        CircularProgressIndicator(
+            modifier = if (isLoading) {
+                Modifier
+                    .size(48.dp)
+                    .align(Alignment.Center)
+            } else {
+                Modifier
+                    .height(0.dp)
+                    .width(0.dp)
+            }
+        )
+    }
+}
+
+@Composable
+fun FeaturedMovieHeader(
+    drawerState: DrawerState,
+    scope: CoroutineScope
+) {
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(120.dp)
+    ) {
+
+        FeaturedMovieHeaderImage()
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            HamburgerMenuIcon {
+                scope.launch {
+                    if (drawerState.isOpen) {
+                        drawerState.close()
+                    } else {
+                        drawerState.open()
+                    }
+                }
+            }
+            SearchMovie { }
+        }
+    }
+}
+
+@Composable
+fun FeaturedMovieHeaderImage() {
+    Image(
+        painter = painterResource(R.drawable.ic_launcher_foreground),
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        modifier = Modifier.fillMaxSize()
     )
 }
 
-@Preview(showBackground = true)
 @Composable
-fun GreetingPreview() {
-    JetpackComposeMovieApplicationTheme {
-        Greeting("Android")
+fun HamburgerMenuIcon(onClick: () -> Unit) {
+    IconButton(onClick = onClick) {
+        Icon(
+            imageVector = Icons.Default.Menu, contentDescription = "Menu", tint = Color.Black
+        )
+    }
+}
+
+@Composable
+fun SearchMovie(onClick: () -> Unit) {
+    IconButton(onClick = onClick) {
+        Icon(
+            imageVector = Icons.Default.Search,
+            contentDescription = "Search Movies",
+            tint = Color.Black
+        )
     }
 }
 
 @Composable
 fun MoviesList(
-    moviesList: List<MoviesListModel>,
-    onFavToggle: (Int) -> Unit
+    moviesList: List<MoviesListModel>, onFavToggle: (Int) -> Unit
 ) {
     println("movies list: $moviesList")
 
@@ -150,8 +313,7 @@ fun MovieItem(movie: MoviesListModel, onFavToggle: (Int) -> Unit) {
             )
             Spacer(modifier = Modifier.size(8.dp))
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -199,6 +361,14 @@ fun FavMovieToggleIcon(movie: MoviesListModel, onFavToggle: (Int) -> Unit) {
             imageVector = if (movie.isFav) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
             contentDescription = if (movie.isFav) "Favorite" else "Not Favorite"
         )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun FeaturedMovieHeaderPreview() {
+    JetpackComposeMovieApplicationTheme {
+        FeaturedMovieHeader(rememberDrawerState(DrawerValue.Closed), rememberCoroutineScope())
     }
 }
 
